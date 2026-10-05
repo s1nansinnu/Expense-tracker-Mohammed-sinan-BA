@@ -272,64 +272,9 @@ const App = (() => {
   ];
 
   function mountLayout(active, { title, subtitle } = {}) {
-    // Sidebar
-    const side = document.getElementById('sidebar');
-    side.innerHTML = '';
-    const brand = el('a', 'brand');
-    brand.href = 'index.html';
-    brand.append(el('span', 'brand-name', 'Expense'), el('span', 'brand-accent', 'Tracker'));
-    const nav = el('nav', 'side-nav');
-    nav.setAttribute('aria-label', 'Main');
-    NAV.forEach((n) => {
-      const a = el('a', `side-link${n.id === active ? ' active' : ''}`, n.label);
-      a.href = n.href;
-      if (n.id === active) a.setAttribute('aria-current', 'page');
-      nav.append(a);
-    });
-    const sideFoot = el('div', 'side-foot');
-    const tb = el('button', 'side-link side-btn');
-    tb.type = 'button';
-    tb.dataset.themeToggle = '';
-    tb.addEventListener('click', toggleTheme);
-    sideFoot.append(tb, el('p', 'side-note', 'Data is stored in this browser only.'));
-    side.append(brand, nav, sideFoot);
-
-    // Topbar
-    const top = document.getElementById('topbar');
-    top.innerHTML = '';
-    const heading = el('div', 'top-heading');
-    heading.append(el('h1', 'page-title', title || ''));
-    if (subtitle) heading.append(el('p', 'page-sub', subtitle));
-    const search = el('form', 'top-search');
-    search.action = 'transactions.html';
-    search.setAttribute('role', 'search');
-    const si = el('input');
-    si.type = 'search';
-    si.name = 'q';
-    si.placeholder = 'Search transactions';
-    si.setAttribute('aria-label', 'Search transactions');
-    si.value = new URLSearchParams(location.search).get('q') || '';
-    search.append(si);
-    const right = el('div', 'top-actions');
-    const tbTop = el('button', 'btn btn-ghost btn-sm');
-    tbTop.type = 'button';
-    tbTop.dataset.themeToggle = '';
-    tbTop.setAttribute('aria-label', 'Toggle theme');
-    tbTop.addEventListener('click', toggleTheme);
-    const addBtn = el('a', 'btn btn-primary btn-sm desktop-only', 'Add Transaction');
-    addBtn.href = 'add.html';
-    right.append(tbTop, addBtn);
-    top.append(heading, search, right);
-
-    // Bottom nav (mobile)
-    const bottom = document.getElementById('bottomNav');
-    bottom.innerHTML = '';
-    [{ id: 'dashboard', label: 'Home', href: 'index.html' },
-      { id: 'add', label: 'Add', href: 'add.html' },
-      { id: 'transactions', label: 'History', href: 'transactions.html' }].forEach((n) => {
-      const a = el('a', `bottom-link${n.id === active ? ' active' : ''}${n.id === 'add' ? ' bottom-add' : ''}`, n.label);
-      a.href = n.href;
-      bottom.append(a);
+    // Wire theme buttons
+    document.querySelectorAll('[data-theme-toggle]').forEach((btn) => {
+      btn.onclick = toggleTheme;
     });
 
     // Banner

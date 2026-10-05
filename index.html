@@ -22,10 +22,33 @@
 </head>
 <body>
   <div class="shell">
-    <aside class="sidebar" id="sidebar"></aside>
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="index.html"><span class="brand-name">Expense</span><span class="brand-accent">Tracker</span></a>
+      <nav class="side-nav" aria-label="Main">
+        <a class="side-link active" href="index.html" aria-current="page">Dashboard</a>
+        <a class="side-link" href="add.html">Add Transaction</a>
+        <a class="side-link" href="transactions.html">Transactions</a>
+      </nav>
+      <div class="side-foot">
+        <button class="side-link side-btn" type="button" data-theme-toggle="">🌙 Dark Mode</button>
+        <p class="side-note">Data is stored in this browser only.</p>
+      </div>
+    </aside>
     <div class="main">
       <div id="debtBanner" hidden></div>
-      <header class="topbar" id="topbar"></header>
+      <header class="topbar" id="topbar">
+        <div class="top-heading">
+          <h1 class="page-title">Dashboard</h1>
+          <p class="page-sub">Overview of your money</p>
+        </div>
+        <form class="top-search" action="transactions.html" role="search">
+          <input type="search" name="q" placeholder="Search transactions" aria-label="Search transactions" />
+        </form>
+        <div class="top-actions">
+          <button class="btn btn-ghost btn-sm" type="button" data-theme-toggle="" aria-label="Toggle theme">🌙 Dark Mode</button>
+          <a class="btn btn-primary btn-sm desktop-only" href="add.html">Add Transaction</a>
+        </div>
+      </header>
 
       <main class="content">
         <!-- Balance hero -->
@@ -126,6 +149,10 @@
       </main>
     </div>
   </div>
-  <nav class="bottom-nav" id="bottomNav" aria-label="Main"></nav>
+  <nav class="bottom-nav" id="bottomNav" aria-label="Main">
+    <a class="bottom-link active" href="index.html">Home</a>
+    <a class="bottom-link bottom-add" href="add.html">Add</a>
+    <a class="bottom-link" href="transactions.html">History</a>
+  </nav>
 </body>
 </html>
