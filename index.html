@@ -1,158 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard - Expense Tracker</title>
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem('expenseTracker.theme');
-        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', t);
-      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
-    })();
-  </script>
-  <link rel="stylesheet" href="css/styles.css" />
-  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script defer src="js/storage.js"></script>
-  <script defer src="js/charts.js"></script>
-  <script defer src="js/core.js"></script>
-  <script defer src="js/dashboard.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker | Dashboard</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <div class="shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand" href="index.html"><span class="brand-name">Expense</span><span class="brand-accent">Tracker</span></a>
-      <nav class="side-nav" aria-label="Main">
-        <a class="side-link active" href="index.html" aria-current="page">Dashboard</a>
-        <a class="side-link" href="add.html">Add Transaction</a>
-        <a class="side-link" href="transactions.html">Transactions</a>
+
+  <!-- Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">
+          <i class="ph ph-wallet"></i>
+        </div>
+        <div class="brand-title">Rupee<span>Track</span></div>
+      </a>
+
+      <!-- 3-Page Navigation -->
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="index.html" class="nav-link active">
+          <i class="ph ph-squares-four"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="add-transaction.html" class="nav-link">
+          <i class="ph ph-plus-circle"></i>
+          <span>Add Transaction</span>
+        </a>
+        <a href="transactions.html" class="nav-link">
+          <i class="ph ph-receipt"></i>
+          <span>All Transactions</span>
+        </a>
       </nav>
-      <div class="side-foot">
-        <button class="side-link side-btn" type="button" data-theme-toggle="">🌙 Dark Mode</button>
-        <p class="side-note">Data is stored in this browser only.</p>
+
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="btn-icon" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          <i id="theme-toggle-icon" class="ph ph-moon"></i>
+        </button>
       </div>
-    </aside>
-    <div class="main">
-      <div id="debtBanner" hidden></div>
-      <header class="topbar" id="topbar">
-        <div class="top-heading">
-          <h1 class="page-title">Dashboard</h1>
-          <p class="page-sub">Overview of your money</p>
-        </div>
-        <form class="top-search" action="transactions.html" role="search">
-          <input type="search" name="q" placeholder="Search transactions" aria-label="Search transactions" />
-        </form>
-        <div class="top-actions">
-          <button class="btn btn-ghost btn-sm" type="button" data-theme-toggle="" aria-label="Toggle theme">🌙 Dark Mode</button>
-          <a class="btn btn-primary btn-sm desktop-only" href="add.html">Add Transaction</a>
-        </div>
-      </header>
-
-      <main class="content">
-        <!-- Balance hero -->
-        <section class="hero">
-          <div>
-            <p class="hero-label">Your Balance</p>
-            <p class="hero-value" id="balance">₹0.00</p>
-            <p class="hero-sub" id="heroSub"></p>
-          </div>
-          <div class="hero-actions">
-            <a class="btn btn-hero" href="add.html?type=income">Add Income</a>
-            <a class="btn btn-hero-solid" href="add.html?type=expense">Add Expense</a>
-          </div>
-        </section>
-
-        <!-- Stats -->
-        <section class="stats">
-          <article class="stat">
-            <div><p class="stat-value" id="totalIncome">₹0.00</p><p class="stat-label">Total Income</p></div>
-            <span class="stat-tag tag-income">IN</span>
-          </article>
-          <article class="stat">
-            <div><p class="stat-value" id="totalExpense">₹0.00</p><p class="stat-label">Total Expenses</p></div>
-            <span class="stat-tag tag-expense">EX</span>
-          </article>
-          <article class="stat">
-            <div><p class="stat-value" id="toPay">₹0.00</p><p class="stat-label" id="toPayLabel">To Pay</p></div>
-            <span class="stat-tag tag-pay">PAY</span>
-          </article>
-          <article class="stat">
-            <div><p class="stat-value" id="toReceive">₹0.00</p><p class="stat-label" id="toReceiveLabel">To Receive</p></div>
-            <span class="stat-tag tag-receive">GET</span>
-          </article>
-        </section>
-
-        <div class="grid-2">
-          <!-- Loans -->
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2 class="panel-title">Pending Loans</h2>
-                <p class="panel-sub" id="loanSub">Money to pay and receive</p>
-              </div>
-            </div>
-            <ul class="loan-list" id="loanList"></ul>
-            <p class="empty" id="loanEmpty">No pending loans.</p>
-          </section>
-
-          <!-- Recent -->
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2 class="panel-title">Recent Transactions</h2>
-                <p class="panel-sub">Your last 5 transactions</p>
-              </div>
-              <a class="btn btn-ghost btn-sm" href="transactions.html">View all</a>
-            </div>
-            <table class="tx-table">
-              <thead><tr><th>Transaction</th><th>Date</th><th>Status</th><th class="num">Amount</th></tr></thead>
-              <tbody id="recentBody"></tbody>
-            </table>
-            <p class="empty" id="recentEmpty">No transactions yet. <a href="add.html">Add your first one</a>.</p>
-          </section>
-        </div>
-
-        <div class="grid-2">
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2 class="panel-title">Monthly Summary</h2>
-                <p class="panel-sub">Income and expenses for the selected month</p>
-              </div>
-              <input type="month" id="summaryMonth" class="input-sm" aria-label="Summary month" />
-            </div>
-            <div class="month-stats">
-              <div><p class="stat-label">Income</p><p class="mini income" id="sumIncome">₹0.00</p></div>
-              <div><p class="stat-label">Expenses</p><p class="mini expense" id="sumExpense">₹0.00</p></div>
-              <div><p class="stat-label">Net</p><p class="mini" id="sumNet">₹0.00</p></div>
-              <div><p class="stat-label">Top Spending</p><p class="mini" id="sumTop">-</p></div>
-            </div>
-            <h3 class="sub-title">Last 6 months</h3>
-            <div class="chart-wrap chart-bar"><canvas id="monthlyChart" role="img" aria-label="Income vs expenses, last 6 months"></canvas></div>
-            <p class="empty" id="monthlyEmpty" hidden></p>
-          </section>
-
-          <section class="panel">
-            <div class="panel-head">
-              <div>
-                <h2 class="panel-title">Expenses by Category</h2>
-                <p class="panel-sub" id="categoryMonthLabel"></p>
-              </div>
-            </div>
-            <div class="chart-wrap chart-donut"><canvas id="categoryChart" role="img" aria-label="Expenses by category"></canvas></div>
-            <p class="empty" id="categoryEmpty" hidden></p>
-            <ul class="breakdown" id="categoryBreakdown"></ul>
-          </section>
-        </div>
-      </main>
     </div>
-  </div>
-  <nav class="bottom-nav" id="bottomNav" aria-label="Main">
-    <a class="bottom-link active" href="index.html">Home</a>
-    <a class="bottom-link bottom-add" href="add.html">Add</a>
-    <a class="bottom-link" href="transactions.html">History</a>
-  </nav>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          <i class="ph ph-chart-pie-slice" style="color: var(--primary);"></i>
+          Financial Overview
+        </h1>
+        <p class="page-subtitle">Track your income, daily expenses, and borrow/lend commitments in Indian Rupees (₹)</p>
+      </div>
+      <div>
+        <a href="add-transaction.html" class="btn btn-primary">
+          <i class="ph ph-plus-bold"></i> New Transaction
+        </a>
+      </div>
+    </div>
+
+    <!-- Summary Statistics Grid -->
+    <section class="stats-grid" aria-label="Summary Statistics">
+      <!-- Total Balance Card -->
+      <div class="stat-card balance">
+        <div class="stat-icon">
+          <i class="ph ph-wallet"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Current Balance</div>
+          <div class="stat-value" id="stat-balance">₹0.00</div>
+          <div class="stat-subtext">Total available funds</div>
+        </div>
+      </div>
+
+      <!-- Total Income Card -->
+      <div class="stat-card income">
+        <div class="stat-icon">
+          <i class="ph ph-arrow-down-left"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Income</div>
+          <div class="stat-value" id="stat-income" style="color: var(--income);">₹0.00</div>
+          <div class="stat-subtext">All earnings & borrowings</div>
+        </div>
+      </div>
+
+      <!-- Total Expense Card -->
+      <div class="stat-card expense">
+        <div class="stat-icon">
+          <i class="ph ph-arrow-up-right"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">Total Expenses</div>
+          <div class="stat-value" id="stat-expense" style="color: var(--expense);">₹0.00</div>
+          <div class="stat-subtext">Spends, loans & EMIs</div>
+        </div>
+      </div>
+
+      <!-- Money to Repay Card -->
+      <div class="stat-card borrowed">
+        <div class="stat-icon">
+          <i class="ph ph-hand-coins"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">To Repay (Borrowed)</div>
+          <div class="stat-value" id="stat-borrowed-pending" style="color: var(--borrowed);">₹0.00</div>
+          <div class="stat-subtext">Pending repayments</div>
+        </div>
+      </div>
+
+      <!-- Money to Receive Card -->
+      <div class="stat-card lent">
+        <div class="stat-icon">
+          <i class="ph ph-hand-heart"></i>
+        </div>
+        <div class="stat-info">
+          <div class="stat-label">To Collect (Lent)</div>
+          <div class="stat-value" id="stat-lent-pending" style="color: var(--lent);">₹0.00</div>
+          <div class="stat-subtext">Pending receivables</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two Dedicated Containers for Debt Tracking -->
+    <h2 style="font-size: 1.25rem; font-weight: 800; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+      <i class="ph ph-arrows-left-right" style="color: var(--primary);"></i>
+      Borrow & Lend Trackers
+    </h2>
+
+    <section class="debt-section" aria-label="Debt Commitments">
+      <!-- Container 1: Borrowed Money (To Repay) -->
+      <div class="debt-container">
+        <div class="debt-header">
+          <div class="debt-title borrowed-title">
+            <i class="ph ph-hand-coins" style="font-size: 1.3rem;"></i>
+            <span>Borrowed Money (To Repay)</span>
+          </div>
+          <span class="badge badge-warning debt-total-badge" id="borrowed-total-badge">₹0.00</span>
+        </div>
+        <div class="debt-list" id="borrowed-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+
+      <!-- Container 2: Money Given to Others (To Collect) -->
+      <div class="debt-container">
+        <div class="debt-header">
+          <div class="debt-title lent-title">
+            <i class="ph ph-hand-heart" style="font-size: 1.3rem;"></i>
+            <span>Money Given to Others (To Collect)</span>
+          </div>
+          <span class="badge badge-info debt-total-badge" id="lent-total-badge">₹0.00</span>
+        </div>
+        <div class="debt-list" id="lent-list">
+          <!-- Populated dynamically via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Visual Analytics & Monthly Summary -->
+    <section class="analytics-grid" aria-label="Analytics & Monthly Breakdown">
+      <!-- Category Breakdown Chart -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="ph ph-chart-donut" style="color: var(--primary);"></i>
+            Category-wise Expense Breakdown
+          </h3>
+        </div>
+        <div class="chart-wrapper">
+          <div class="canvas-container">
+            <canvas id="expense-category-chart" width="200" height="200"></canvas>
+          </div>
+          <div class="chart-legend" id="category-legend-container">
+            <!-- Populated via charts.js -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly Summary Card -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="ph ph-calendar-check" style="color: var(--primary);"></i>
+            Monthly Expense Summary
+          </h3>
+        </div>
+        <div class="monthly-breakdown-list" id="monthly-breakdown-list">
+          <!-- Populated via dashboard.js -->
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <p>&copy; 2026 RupeeTrack Expense Tracker &bull; Built with HTML5, CSS3 &amp; JavaScript</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/dashboard.js"></script>
 </body>
 </html>
+
+

@@ -1,129 +1,261 @@
-/* Dashboard page */
-(() => {
-  'use strict';
-  const A = App;
-  const $ = (id) => document.getElementById(id);
-  let summaryMonth = A.monthKey(A.todayISO());
+/**
+ * Dashboard Logic
+ * Coordinates statistics, debt tracking widgets, category donut charts, and monthly breakdown
+ */
 
-  function txRow(t) {
-    const tr = A.el('tr');
-    const cell = A.el('td');
-    const wrap = A.el('div', 'tx-cell');
-    const text = A.el('div', 'tx-text');
-    text.append(A.el('span', 'tx-title', t.category));
-    if (t.description) text.append(A.el('span', 'tx-desc', t.description));
-    wrap.append(A.categoryBadge(t), text);
-    cell.append(wrap);
-    const date = A.el('td', 'muted', A.formatDate(t.date));
-    date.dataset.label = 'Date';
-    const st = A.el('td');
-    st.dataset.label = 'Status';
-    st.append(A.statusPill(t));
-    const amt = A.el('td', `num amount ${t.type}`, A.signedAmount(t));
-    tr.append(cell, date, st, amt);
-    return tr;
-  }
+document.addEventListener('DOMContentLoaded', () => {
+  initDashboard();
 
-  function renderTop() {
-    const t = A.totals(A.all());
-    const bal = t.income - t.expense;
-    $('balance').textContent = A.fmt(bal);
-    $('heroSub').textContent = `${A.plural(A.all().length, 'transaction')} recorded`;
-    $('totalIncome').textContent = A.fmt(t.income);
-    $('totalExpense').textContent = A.fmt(t.expense);
-    const owe = A.outstandingDebts();
-    const owed = A.outstandingLent();
-    $('toPay').textContent = A.fmt(A.sum(owe));
-    $('toReceive').textContent = A.fmt(A.sum(owed));
-    $('toPayLabel').textContent = `To Pay (${owe.length})`;
-    $('toReceiveLabel').textContent = `To Receive (${owed.length})`;
-  }
-
-  function renderLoans() {
-    const loans = [...A.outstandingDebts(), ...A.outstandingLent()]
-      .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
-    $('loanEmpty').hidden = loans.length > 0;
-    $('loanList').replaceChildren(...loans.map((t) => {
-      const lent = A.isLent(t);
-      const st = A.debtStatus(t);
-      const li = A.el('li', `loan-item ${st.kind}`);
-      const badge = A.el('span', `cat-badge ${lent ? 'income' : 'expense'}`, lent ? 'GET' : 'PAY');
-      const info = A.el('div', 'loan-info');
-      info.append(
-        A.el('span', 'tx-title', t.lender),
-        A.el('span', 'tx-desc', `${lent ? 'Owes you' : 'You owe'} - due ${A.formatDate(t.dueDate)}`),
-      );
-      const right = A.el('div', 'loan-right');
-      right.append(A.el('span', `amount ${lent ? 'income' : 'expense'}`, A.fmt(t.amount)), A.el('span', `pill pill-${st.kind}`, st.label));
-      const btn = A.el('button', 'btn btn-ghost btn-sm', lent ? 'Mark received' : 'Mark repaid');
-      btn.type = 'button';
-      btn.addEventListener('click', () => A.repay(t.id));
-      li.append(badge, info, right, btn);
-      return li;
-    }));
-  }
-
-  function renderRecent() {
-    const recent = A.sortTx(A.all()).slice(0, 5);
-    $('recentEmpty').hidden = recent.length > 0;
-    $('recentBody').closest('table').hidden = recent.length === 0;
-    $('recentBody').replaceChildren(...recent.map(txRow));
-  }
-
-  function lastNMonths(key, n) {
-    const [y, m] = key.split('-').map(Number);
-    const out = [];
-    for (let i = n - 1; i >= 0; i -= 1) out.push(A.monthKey(A.toISO(new Date(y, m - 1 - i, 1))));
-    return out;
-  }
-
-  function renderInsights() {
-    const monthTx = A.all().filter((t) => A.monthKey(t.date) === summaryMonth);
-    const t = A.totals(monthTx);
-    const net = t.income - t.expense;
-    $('sumIncome').textContent = A.fmt(t.income);
-    $('sumExpense').textContent = A.fmt(t.expense);
-    $('sumNet').textContent = A.fmt(net);
-    $('sumNet').className = `mini ${net < 0 ? 'expense' : net > 0 ? 'income' : ''}`;
-    const breakdown = A.categoryBreakdown(monthTx);
-    $('sumTop').textContent = breakdown[0] ? breakdown[0].category : '-';
-    $('categoryMonthLabel').textContent = A.formatMonth(summaryMonth, true);
-
-    Charts.renderCategoryChart($('categoryChart'), $('categoryEmpty'), breakdown, A.fmt);
-    $('categoryBreakdown').replaceChildren(...breakdown.map((b, i) => {
-      const pct = t.expense ? (b.amount / t.expense) * 100 : 0;
-      const li = A.el('li', 'breakdown-item');
-      const row = A.el('div', 'breakdown-row');
-      const name = A.el('span', 'breakdown-name');
-      const dot = A.el('span', 'dot');
-      dot.style.background = Charts.colorFor(i);
-      name.append(dot, document.createTextNode(b.category));
-      row.append(name, A.el('span', 'muted', `${A.fmt(b.amount)} - ${pct.toFixed(1)}%`));
-      const bar = A.el('div', 'bar');
-      const fill = A.el('div', 'bar-fill');
-      fill.style.width = `${pct}%`;
-      fill.style.background = Charts.colorFor(i);
-      bar.append(fill);
-      li.append(row, bar);
-      return li;
-    }));
-
-    const data = lastNMonths(summaryMonth, 6).map((m) => {
-      const mt = A.totals(A.all().filter((x) => A.monthKey(x.date) === m));
-      return { label: A.formatMonth(m), income: mt.income, expense: mt.expense };
-    });
-    Charts.renderMonthlyChart($('monthlyChart'), $('monthlyEmpty'), data, A.fmt);
-  }
-
-  function render() { renderTop(); renderLoans(); renderRecent(); renderInsights(); }
-
-  A.mountLayout('dashboard', { title: 'Dashboard', subtitle: 'Overview of your money' });
-  $('summaryMonth').value = summaryMonth;
-  $('summaryMonth').addEventListener('change', (e) => {
-    summaryMonth = e.target.value || A.monthKey(A.todayISO());
-    e.target.value = summaryMonth;
-    renderInsights();
+  // Listen for storage updates (e.g. from other tabs or actions)
+  window.addEventListener('transactionsUpdated', () => {
+    initDashboard();
   });
-  A.onChange(render);
-  render();
-})();
+
+  window.addEventListener('themeChanged', () => {
+    initDashboard();
+  });
+});
+
+function initDashboard() {
+  const transactions = Storage.getTransactions();
+
+  updateSummaryCards(transactions);
+  renderDebtContainers(transactions);
+  renderCategoryAnalytics(transactions);
+  renderMonthlyBreakdown(transactions);
+}
+
+/**
+ * 1. Calculate & Render Top Summary Cards
+ */
+function updateSummaryCards(transactions) {
+  let totalIncome = 0;
+  let totalExpense = 0;
+  let totalBorrowedPending = 0;
+  let totalLentPending = 0;
+
+  transactions.forEach(t => {
+    const amt = Number(t.amount) || 0;
+    if (t.type === 'income') {
+      totalIncome += amt;
+      if (t.category === 'Borrowed Money' && !t.isSettled) {
+        totalBorrowedPending += amt;
+      }
+    } else if (t.type === 'expense') {
+      totalExpense += amt;
+      if (t.category === 'Money Given to Others' && !t.isSettled) {
+        totalLentPending += amt;
+      }
+    }
+  });
+
+  const balance = totalIncome - totalExpense;
+
+  const balanceEl = document.getElementById('stat-balance');
+  const incomeEl = document.getElementById('stat-income');
+  const expenseEl = document.getElementById('stat-expense');
+  const borrowedStatEl = document.getElementById('stat-borrowed-pending');
+  const lentStatEl = document.getElementById('stat-lent-pending');
+
+  if (balanceEl) {
+    balanceEl.textContent = UI.formatINR(balance);
+    balanceEl.style.color = balance >= 0 ? 'var(--income)' : 'var(--expense)';
+  }
+  if (incomeEl) incomeEl.textContent = UI.formatINR(totalIncome);
+  if (expenseEl) expenseEl.textContent = UI.formatINR(totalExpense);
+  if (borrowedStatEl) borrowedStatEl.textContent = UI.formatINR(totalBorrowedPending);
+  if (lentStatEl) lentStatEl.textContent = UI.formatINR(totalLentPending);
+}
+
+/**
+ * 2. Render Dedicated Borrowed & Lent Money Containers
+ */
+function renderDebtContainers(transactions) {
+  const borrowedListEl = document.getElementById('borrowed-list');
+  const lentListEl = document.getElementById('lent-list');
+  const borrowedBadgeTotalEl = document.getElementById('borrowed-total-badge');
+  const lentBadgeTotalEl = document.getElementById('lent-total-badge');
+
+  // Filter items
+  const borrowedItems = transactions.filter(t => t.category === 'Borrowed Money');
+  const lentItems = transactions.filter(t => t.category === 'Money Given to Others');
+
+  // Totals for active debts
+  const borrowedActiveTotal = borrowedItems
+    .filter(t => !t.isSettled)
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  const lentActiveTotal = lentItems
+    .filter(t => !t.isSettled)
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  if (borrowedBadgeTotalEl) borrowedBadgeTotalEl.textContent = UI.formatINR(borrowedActiveTotal);
+  if (lentBadgeTotalEl) lentBadgeTotalEl.textContent = UI.formatINR(lentActiveTotal);
+
+  // Render Borrowed (Money to Repay)
+  if (borrowedListEl) {
+    if (borrowedItems.length === 0) {
+      borrowedListEl.innerHTML = `
+        <div class="debt-empty">
+          <i class="ph ph-hand-coins"></i>
+          <p>No borrowed money logged yet.</p>
+        </div>
+      `;
+    } else {
+      borrowedListEl.innerHTML = borrowedItems.map(item => createDebtItemHTML(item, 'borrowed')).join('');
+    }
+  }
+
+  // Render Lent (Money to Receive)
+  if (lentListEl) {
+    if (lentItems.length === 0) {
+      lentListEl.innerHTML = `
+        <div class="debt-empty">
+          <i class="ph ph-hand-heart"></i>
+          <p>No money given to others logged yet.</p>
+        </div>
+      `;
+    } else {
+      lentListEl.innerHTML = lentItems.map(item => createDebtItemHTML(item, 'lent')).join('');
+    }
+  }
+
+  // Attach toggle listeners for Settle / Unsettle
+  document.querySelectorAll('.btn-toggle-settle').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      const updated = Storage.toggleSettled(id);
+      if (updated) {
+        UI.showToast(
+          updated.isSettled ? 'Marked as settled!' : 'Marked as pending!',
+          updated.isSettled ? 'success' : 'info'
+        );
+        initDashboard();
+      }
+    });
+  });
+}
+
+function createDebtItemHTML(item, type) {
+  const isSettled = !!item.isSettled;
+  const person = UI.escapeHTML(item.personName || 'Unnamed contact');
+  const desc = UI.escapeHTML(item.description || (type === 'borrowed' ? 'Borrowed money' : 'Money given'));
+  const amount = UI.formatINR(item.amount);
+  const badgeHTML = UI.getDueBadgeHTML(item.dueDate, isSettled);
+
+  return `
+    <div class="debt-item ${type}-type ${isSettled ? 'is-settled' : ''}">
+      <div class="debt-item-left">
+        <div class="debt-item-person">
+          <i class="ph ph-user-circle"></i>
+          ${person}
+        </div>
+        <div class="debt-item-meta">
+          <span>${desc}</span>
+          ${item.dueDate ? `<span>&bull; Due: ${UI.formatDate(item.dueDate)}</span>` : ''}
+          ${badgeHTML}
+        </div>
+      </div>
+      <div class="debt-item-right">
+        <div class="debt-item-amount">${amount}</div>
+        <button class="btn btn-sm ${isSettled ? 'btn-secondary' : 'btn-primary'} btn-toggle-settle" 
+                data-id="${item.id}"
+                title="${isSettled ? 'Reopen debt' : 'Mark as settled'}">
+          <i class="ph ${isSettled ? 'ph-arrow-counter-clockwise' : 'ph-check'}"></i>
+          ${isSettled ? 'Reopen' : 'Mark Settled'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 3. Render Category Expense Chart & Legend
+ */
+function renderCategoryAnalytics(transactions) {
+  // Aggregate expenses by category
+  const expenseMap = {};
+  transactions
+    .filter(t => t.type === 'expense')
+    .forEach(t => {
+      const cat = t.category || 'Other';
+      expenseMap[cat] = (expenseMap[cat] || 0) + Number(t.amount || 0);
+    });
+
+  const categoryData = Object.keys(expenseMap)
+    .map(category => ({
+      category,
+      amount: expenseMap[category]
+    }))
+    .sort((a, b) => b.amount - a.amount);
+
+  Charts.renderDonutChart('expense-category-chart', categoryData);
+  Charts.renderLegend('category-legend-container', categoryData);
+}
+
+/**
+ * 4. Render Monthly Expense Summary
+ */
+function renderMonthlyBreakdown(transactions) {
+  const listEl = document.getElementById('monthly-breakdown-list');
+  if (!listEl) return;
+
+  const monthlyMap = {};
+
+  transactions.forEach(t => {
+    if (!t.date) return;
+    const parts = t.date.split('-');
+    if (parts.length < 2) return;
+    const key = `${parts[0]}-${parts[1]}`; // YYYY-MM
+
+    if (!monthlyMap[key]) {
+      monthlyMap[key] = { income: 0, expense: 0, year: parts[0], month: parts[1] };
+    }
+
+    const amt = Number(t.amount || 0);
+    if (t.type === 'income') {
+      monthlyMap[key].income += amt;
+    } else if (t.type === 'expense') {
+      monthlyMap[key].expense += amt;
+    }
+  });
+
+  const sortedMonths = Object.keys(monthlyMap).sort().reverse().slice(0, 5); // Last 5 recorded months
+
+  if (sortedMonths.length === 0) {
+    listEl.innerHTML = `<div style="text-align:center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">No monthly data available yet.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = sortedMonths.map(key => {
+    const data = monthlyMap[key];
+    const dateObj = new Date(Number(data.year), Number(data.month) - 1, 1);
+    const monthName = dateObj.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const netSavings = data.income - data.expense;
+
+    return `
+      <div class="monthly-item">
+        <div class="monthly-month-name">
+          <i class="ph ph-calendar-blank" style="color: var(--primary); margin-right: 4px;"></i>
+          ${monthName}
+        </div>
+        <div class="monthly-stats">
+          <div class="monthly-stat-box">
+            <div class="monthly-stat-label">Income</div>
+            <div class="monthly-stat-value" style="color: var(--income);">${UI.formatINR(data.income)}</div>
+          </div>
+          <div class="monthly-stat-box">
+            <div class="monthly-stat-label">Expense</div>
+            <div class="monthly-stat-value" style="color: var(--expense);">${UI.formatINR(data.expense)}</div>
+          </div>
+          <div class="monthly-stat-box">
+            <div class="monthly-stat-label">Net</div>
+            <div class="monthly-stat-value" style="color: ${netSavings >= 0 ? 'var(--income)' : 'var(--expense)'};">
+              ${UI.formatINR(netSavings)}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}

@@ -1,108 +1,217 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Transactions - Expense Tracker</title>
-  <script>
-    (function () {
-      try {
-        var t = localStorage.getItem('expenseTracker.theme');
-        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-        document.documentElement.setAttribute('data-theme', t);
-      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
-    })();
-  </script>
-  <link rel="stylesheet" href="css/styles.css" />
-  <script defer src="js/storage.js"></script>
-  <script defer src="js/core.js"></script>
-  <script defer src="js/transactions.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker | All Transactions</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-  <div class="shell">
-    <aside class="sidebar" id="sidebar">
-      <a class="brand" href="index.html"><span class="brand-name">Expense</span><span class="brand-accent">Tracker</span></a>
-      <nav class="side-nav" aria-label="Main">
-        <a class="side-link" href="index.html">Dashboard</a>
-        <a class="side-link" href="add.html">Add Transaction</a>
-        <a class="side-link active" href="transactions.html" aria-current="page">Transactions</a>
+
+  <!-- Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">
+          <i class="ph ph-wallet"></i>
+        </div>
+        <div class="brand-title">Rupee<span>Track</span></div>
+      </a>
+
+      <!-- 3-Page Navigation -->
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="index.html" class="nav-link">
+          <i class="ph ph-squares-four"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="add-transaction.html" class="nav-link">
+          <i class="ph ph-plus-circle"></i>
+          <span>Add Transaction</span>
+        </a>
+        <a href="transactions.html" class="nav-link active">
+          <i class="ph ph-receipt"></i>
+          <span>All Transactions</span>
+        </a>
       </nav>
-      <div class="side-foot">
-        <button class="side-link side-btn" type="button" data-theme-toggle="">🌙 Dark Mode</button>
-        <p class="side-note">Data is stored in this browser only.</p>
+
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="btn-icon" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          <i id="theme-toggle-icon" class="ph ph-moon"></i>
+        </button>
       </div>
-    </aside>
-    <div class="main">
-      <div id="debtBanner" hidden></div>
-      <header class="topbar" id="topbar">
-        <div class="top-heading">
-          <h1 class="page-title">Transactions</h1>
-          <p class="page-sub">All your income and expenses</p>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">
+          <i class="ph ph-receipt" style="color: var(--primary);"></i>
+          Transaction Ledger
+        </h1>
+        <p class="page-subtitle">View, search, filter, edit, or delete all financial transactions</p>
+      </div>
+      <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+        <button id="btn-reset-data" class="btn btn-secondary btn-sm" title="Clear all transactions to zero">
+          <i class="ph ph-trash"></i> Clear All Data
+        </button>
+        <a href="add-transaction.html" class="btn btn-primary btn-sm">
+          <i class="ph ph-plus-bold"></i> Add New
+        </a>
+      </div>
+    </div>
+
+    <!-- Filter & Search Toolbar -->
+    <section class="filter-toolbar" aria-label="Filters and Search">
+      <div class="toolbar-row">
+        <!-- Search Input -->
+        <div class="search-box">
+          <i class="ph ph-magnifying-glass"></i>
+          <input type="text" 
+                 id="search-input" 
+                 class="form-control" 
+                 placeholder="Search by description, person, or category...">
         </div>
-        <form class="top-search" action="transactions.html" role="search">
-          <input type="search" name="q" placeholder="Search transactions" aria-label="Search transactions" />
-        </form>
-        <div class="top-actions">
-          <button class="btn btn-ghost btn-sm" type="button" data-theme-toggle="" aria-label="Toggle theme">🌙 Dark Mode</button>
-          <a class="btn btn-primary btn-sm desktop-only" href="add.html">Add Transaction</a>
+
+        <!-- Category Dropdown -->
+        <div style="min-width: 180px;">
+          <select id="filter-category" class="form-control">
+            <option value="all">All Categories</option>
+            <!-- Filled via transactions-page.js -->
+          </select>
         </div>
-      </header>
 
-      <main class="content">
-        <section class="stats stats-3">
-          <article class="stat"><div><p class="stat-value" id="fIncome">₹0.00</p><p class="stat-label">Income (filtered)</p></div><span class="stat-tag tag-income">IN</span></article>
-          <article class="stat"><div><p class="stat-value" id="fExpense">₹0.00</p><p class="stat-label">Expenses (filtered)</p></div><span class="stat-tag tag-expense">EX</span></article>
-          <article class="stat"><div><p class="stat-value" id="fNet">₹0.00</p><p class="stat-label">Net (filtered)</p></div><span class="stat-tag tag-pay">NET</span></article>
-        </section>
+        <!-- Date Range Filter -->
+        <div style="min-width: 150px;">
+          <select id="filter-date-range" class="form-control">
+            <option value="all">All Time</option>
+            <option value="this_month">This Month</option>
+            <option value="this_week">This Week</option>
+          </select>
+        </div>
 
-        <section class="panel">
-          <div class="panel-head">
-            <div>
-              <h2 class="panel-title">Transaction History</h2>
-              <p class="panel-sub" id="listCount"></p>
-            </div>
-            <a class="btn btn-primary btn-sm" href="add.html">Add Transaction</a>
+        <!-- Sort Filter -->
+        <div style="min-width: 160px;">
+          <select id="sort-by" class="form-control">
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="amount-desc">Amount: High to Low</option>
+            <option value="amount-asc">Amount: Low to High</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Type Filter Pills -->
+      <div class="toolbar-row" style="justify-content: space-between;">
+        <div class="filter-pills">
+          <button type="button" class="filter-pill filter-type-pill active" data-type="all">All Types</button>
+          <button type="button" class="filter-pill filter-type-pill" data-type="income">Income Only</button>
+          <button type="button" class="filter-pill filter-type-pill" data-type="expense">Expense Only</button>
+          <button type="button" class="filter-pill filter-type-pill" data-type="borrowed">Borrowed Only</button>
+          <button type="button" class="filter-pill filter-type-pill" data-type="lent">Money Lent Only</button>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <span id="tx-results-count" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">
+            Showing 0 transactions
+          </span>
+          <button type="button" id="reset-filters-btn" class="btn btn-secondary btn-sm" style="padding: 0.35rem 0.65rem;">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Transactions List Container -->
+    <div class="transactions-container">
+      <div class="transactions-list" id="transactions-ledger">
+        <!-- Rendered dynamically via transactions-page.js -->
+      </div>
+    </div>
+  </main>
+
+  <!-- Edit Transaction Modal -->
+  <div class="modal-backdrop" id="edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title" id="edit-modal-title">
+          <i class="ph ph-pencil-simple" style="color: var(--primary);"></i> Edit Transaction
+        </h3>
+        <button type="button" class="btn-icon" id="edit-modal-close" aria-label="Close modal">&times;</button>
+      </div>
+
+      <form id="edit-modal-form">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-amount" class="form-label">Amount (₹) <span class="required">*</span></label>
+            <input type="number" id="edit-amount" class="form-control" step="0.01" min="0.01" required>
           </div>
-
-          <div class="filters">
-            <div class="field">
-              <label for="filterType">Type</label>
-              <select id="filterType">
-                <option value="all">All</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="filterCategory">Category</label>
-              <select id="filterCategory"></select>
-            </div>
-            <div class="field">
-              <label for="filterMonth">Month</label>
-              <input type="month" id="filterMonth" />
-            </div>
-            <div class="field">
-              <label for="filterSearch">Search</label>
-              <input type="search" id="filterSearch" placeholder="Description, category or name" />
-            </div>
-            <button type="button" id="clearFilters" class="btn btn-ghost">Clear</button>
+          <div class="form-group">
+            <label for="edit-category" class="form-label">Category <span class="required">*</span></label>
+            <select id="edit-category" class="form-control" required></select>
           </div>
+        </div>
 
-          <table class="tx-table tx-table-full">
-            <thead>
-              <tr><th>Transaction</th><th>Date</th><th>Status</th><th class="num">Amount</th><th class="num">Actions</th></tr>
-            </thead>
-            <tbody id="txBody"></tbody>
-          </table>
-          <p class="empty" id="emptyState"></p>
-        </section>
-      </main>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-date" class="form-label">Date <span class="required">*</span></label>
+            <input type="date" id="edit-date" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-description" class="form-label">Description <span class="required">*</span></label>
+            <input type="text" id="edit-description" class="form-control" required>
+          </div>
+        </div>
+
+        <!-- Debt Fields (Visible if borrowed or lent category) -->
+        <div id="edit-debt-fields" style="display: none; background-color: var(--bg-subtle); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1rem;">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="edit-person-name" class="form-label">Person's Name</label>
+              <input type="text" id="edit-person-name" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="edit-due-date" class="form-label">Repay Due Date</label>
+              <input type="date" id="edit-due-date" class="form-control">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-notes" class="form-label">Notes</label>
+          <textarea id="edit-notes" class="form-control" rows="2"></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+          <button type="button" class="btn btn-secondary" id="edit-modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">
+            <i class="ph ph-check"></i> Save Changes
+          </button>
+        </div>
+      </form>
     </div>
   </div>
-  <nav class="bottom-nav" id="bottomNav" aria-label="Main">
-    <a class="bottom-link" href="index.html">Home</a>
-    <a class="bottom-link bottom-add" href="add.html">Add</a>
-    <a class="bottom-link active" href="transactions.html">History</a>
-  </nav>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <p>&copy; 2026 RupeeTrack Expense Tracker &bull; Built with HTML5, CSS3 &amp; JavaScript</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/transactions-page.js"></script>
 </body>
 </html>
+
+

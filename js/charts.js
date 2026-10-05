@@ -1,115 +1,121 @@
-/* Chart.js wrappers (theme-aware, with offline fallback) */
-const Charts = (() => {
-  'use strict';
-  const PALETTE = [
-    '#6366f1', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#ec4899',
-    '#14b8a6', '#8b5cf6', '#f97316', '#84cc16', '#06b6d4', '#a855f7',
-  ];
-  let categoryChart = null;
-  let monthlyChart = null;
+/**
+ * Native HTML5 Canvas Category Chart & Visual Analytics
+ * Renders an interactive donut chart with category distribution without external libraries
+ */
 
-  const compact = new Intl.NumberFormat('en-IN', {
-    style: 'currency', currency: 'INR', notation: 'compact', maximumFractionDigits: 1,
-  });
+const Charts = {
+  // Vibrant color palette suitable for both dark and light modes
+  palette: [
+    '#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', 
+    '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+    '#84cc16', '#d946ef', '#64748b'
+  ],
 
-  const isAvailable = () => typeof window.Chart === 'function';
-  const colorFor = (i) => PALETTE[i % PALETTE.length];
-  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  /**
+   * Render category donut chart on a canvas element
+   */
+  renderDonutChart(canvasId, categoryData) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
 
-  function destroy(chart) {
-    if (chart) chart.destroy();
-    return null;
-  }
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    const centerX = width / 2;
+    const centerY = height / 2;
+    const radius = Math.min(centerX, centerY) - 10;
+    const innerRadius = radius * 0.62;
 
-  function applyDefaults() {
-    if (!isAvailable()) return;
-    window.Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
-    window.Chart.defaults.color = cssVar('--text-muted');
-  }
+    // Clear previous drawing
+    ctx.clearRect(0, 0, width, height);
 
-  function showMessage(wrap, msgEl, text) {
-    wrap.hidden = true;
-    msgEl.hidden = false;
-    msgEl.textContent = text;
-  }
+    const total = categoryData.reduce((acc, cur) => acc + cur.amount, 0);
 
-  function renderCategoryChart(canvas, msgEl, breakdown, format) {
-    categoryChart = destroy(categoryChart);
-    const wrap = canvas.parentElement;
-    if (!breakdown.length) return showMessage(wrap, msgEl, 'No expenses recorded for this month.');
-    if (!isAvailable()) return showMessage(wrap, msgEl, 'Chart could not load (are you offline?). See the breakdown below.');
+    if (total === 0 || categoryData.length === 0) {
+      // Empty state donut
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, innerRadius, Math.PI * 2, 0, true);
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#1e293b' : '#e2e8f0';
+      ctx.fill();
 
-    wrap.hidden = false;
-    msgEl.hidden = true;
-    applyDefaults();
+      // Center text
+      ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#64748b';
+      ctx.font = '600 13px system-ui';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('No Data', centerX, centerY);
+      return;
+    }
 
-    const values = breakdown.map((b) => b.amount);
-    const total = values.reduce((a, b) => a + b, 0);
+    let startAngle = -Math.PI / 2;
 
-    categoryChart = new window.Chart(canvas, {
-      type: 'doughnut',
-      data: {
-        labels: breakdown.map((b) => b.category),
-        datasets: [{
-          data: values,
-          backgroundColor: breakdown.map((_, i) => colorFor(i)),
-          borderColor: cssVar('--surface'),
-          borderWidth: 3,
-          hoverOffset: 6,
-        }],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '62%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => {
-                const pct = total ? ((ctx.parsed / total) * 100).toFixed(1) : 0;
-                return ` ${ctx.label}: ${format(ctx.parsed)} (${pct}%)`;
-              },
-            },
-          },
-        },
-      },
+    categoryData.forEach((item, index) => {
+      const sliceAngle = (item.amount / total) * (Math.PI * 2);
+      const endAngle = startAngle + sliceAngle;
+      const color = item.color || this.palette[index % this.palette.length];
+
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+      ctx.arc(centerX, centerY, innerRadius, endAngle, startAngle, true);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+
+      // Thin separation border
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#131b2e' : '#ffffff';
+      ctx.stroke();
+
+      startAngle = endAngle;
     });
+
+    // Center total summary
+    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#f8fafc' : '#0f172a';
+    ctx.font = '800 15px system-ui';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Format compact total (e.g., ₹1.2L or ₹45K or standard)
+    const formattedTotal = total >= 100000 ? `₹${(total/100000).toFixed(1)}L` : (total >= 1000 ? `₹${(total/1000).toFixed(0)}k` : `₹${total}`);
+    ctx.fillText(formattedTotal, centerX, centerY - 8);
+
+    ctx.fillStyle = document.documentElement.getAttribute('data-theme') === 'dark' ? '#94a3b8' : '#64748b';
+    ctx.font = '600 11px system-ui';
+    ctx.fillText('Expense', centerX, centerY + 12);
+  },
+
+  /**
+   * Render custom HTML legend for categories
+   */
+  renderLegend(containerId, categoryData) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!categoryData || categoryData.length === 0) {
+      container.innerHTML = `<div style="text-align:center; padding: 1.5rem; color: var(--text-muted); font-size: 0.85rem;">No expense categories recorded yet.</div>`;
+      return;
+    }
+
+    const total = categoryData.reduce((acc, cur) => acc + cur.amount, 0);
+
+    container.innerHTML = categoryData.map((item, index) => {
+      const color = item.color || this.palette[index % this.palette.length];
+      const pct = total > 0 ? ((item.amount / total) * 100).toFixed(1) : 0;
+      return `
+        <div class="legend-item">
+          <span class="legend-label">
+            <span class="legend-color-dot" style="background-color: ${color}"></span>
+            ${UI.escapeHTML(item.category)}
+          </span>
+          <span class="legend-amount">
+            ${UI.formatINR(item.amount)}
+            <span class="legend-percent">(${pct}%)</span>
+          </span>
+        </div>
+      `;
+    }).join('');
   }
+};
 
-  function renderMonthlyChart(canvas, msgEl, data, format) {
-    monthlyChart = destroy(monthlyChart);
-    const wrap = canvas.parentElement;
-    if (!isAvailable()) return showMessage(wrap, msgEl, 'Chart could not load (are you offline?).');
-
-    wrap.hidden = false;
-    msgEl.hidden = true;
-    applyDefaults();
-
-    const grid = cssVar('--border');
-    monthlyChart = new window.Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels: data.map((d) => d.label),
-        datasets: [
-          { label: 'Income', data: data.map((d) => d.income), backgroundColor: cssVar('--income'), borderRadius: 6, maxBarThickness: 26 },
-          { label: 'Expenses', data: data.map((d) => d.expense), backgroundColor: cssVar('--expense'), borderRadius: 6, maxBarThickness: 26 },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { grid: { display: false } },
-          y: { beginAtZero: true, grid: { color: grid }, ticks: { callback: (v) => compact.format(v) } },
-        },
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 12, usePointStyle: true } },
-          tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${format(ctx.parsed.y)}` } },
-        },
-      },
-    });
-  }
-
-  return { renderCategoryChart, renderMonthlyChart, colorFor };
-})();
+window.Charts = Charts;

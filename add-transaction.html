@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker | Add Transaction</title>
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- Navigation Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <a href="index.html" class="brand-logo">
+        <div class="brand-icon">
+          <i class="ph ph-wallet"></i>
+        </div>
+        <div class="brand-title">Rupee<span>Track</span></div>
+      </a>
+
+      <!-- 3-Page Navigation -->
+      <nav class="main-nav" aria-label="Main Navigation">
+        <a href="index.html" class="nav-link">
+          <i class="ph ph-squares-four"></i>
+          <span>Dashboard</span>
+        </a>
+        <a href="add-transaction.html" class="nav-link active">
+          <i class="ph ph-plus-circle"></i>
+          <span>Add Transaction</span>
+        </a>
+        <a href="transactions.html" class="nav-link">
+          <i class="ph ph-receipt"></i>
+          <span>All Transactions</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <button id="theme-toggle-btn" class="btn-icon" title="Toggle Dark/Light Mode" aria-label="Toggle theme">
+          <i id="theme-toggle-icon" class="ph ph-moon"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="page-header" style="justify-content: center; text-align: center;">
+      <div>
+        <h1 class="page-title" style="justify-content: center;">
+          <i class="ph ph-plus-circle" style="color: var(--primary);"></i>
+          New Transaction
+        </h1>
+        <p class="page-subtitle">Record earnings, expenses, borrowed funds, or money given to others</p>
+      </div>
+    </div>
+
+    <!-- Transaction Form Card -->
+    <div class="form-container">
+      <form id="transaction-form" novalidate>
+
+        <!-- Income vs Expense Switch -->
+        <div class="type-toggle-group">
+          <button type="button" id="type-income-btn" class="type-toggle-btn income-tab">
+            <i class="ph ph-arrow-down-left"></i> Income
+          </button>
+          <button type="button" id="type-expense-btn" class="type-toggle-btn expense-tab active">
+            <i class="ph ph-arrow-up-right"></i> Expense
+          </button>
+        </div>
+
+        <!-- Amount & Category Row -->
+        <div class="form-row">
+          <!-- Amount Input -->
+          <div class="form-group">
+            <label for="tx-amount" class="form-label">Amount <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-prefix">₹</span>
+              <input type="number" 
+                     id="tx-amount" 
+                     class="form-control has-prefix" 
+                     placeholder="0.00" 
+                     step="0.01" 
+                     min="0.01" 
+                     required>
+            </div>
+            <div class="form-feedback" id="amount-feedback">Please enter a valid amount greater than ₹0.</div>
+          </div>
+
+          <!-- Category Input -->
+          <div class="form-group">
+            <label for="tx-category" class="form-label">Category <span class="required">*</span></label>
+            <select id="tx-category" class="form-control" required>
+              <option value="" disabled selected>Select category...</option>
+              <!-- Filled dynamically by JS -->
+            </select>
+            <div class="form-feedback" id="category-feedback">Please select a category.</div>
+          </div>
+        </div>
+
+        <!-- Conditional Debt Section (Shown for "Borrowed Money" or "Money Given to Others") -->
+        <div id="debt-conditional-box" class="debt-conditional-box" style="display: none;">
+          <div class="debt-conditional-title">
+            <i class="ph ph-handshake" style="font-size: 1.3rem;"></i>
+            <span id="debt-title-text">Repayment Commitment</span>
+          </div>
+
+          <div class="form-row">
+            <!-- Counterparty Person Name -->
+            <div class="form-group">
+              <label for="debt-person-name" class="form-label" id="debt-person-label">
+                Person's Name <span class="required">*</span>
+              </label>
+              <input type="text" 
+                     id="debt-person-name" 
+                     class="form-control" 
+                     placeholder="e.g. Ramesh Kumar">
+              <div class="form-feedback" id="person-feedback">Please enter the person's name.</div>
+            </div>
+
+            <!-- Repayment Timeframe Quick Presets -->
+            <div class="form-group">
+              <label class="form-label" id="debt-timeframe-label">Time to repay:</label>
+              <div class="quick-days-presets">
+                <button type="button" class="pill-btn preset-days-btn" data-days="5">Within 5 Days</button>
+                <button type="button" class="pill-btn preset-days-btn active" data-days="7">Within 7 Days</button>
+                <button type="button" class="pill-btn preset-days-btn" data-days="custom">Custom Days</button>
+              </div>
+
+              <!-- Custom days input (if selected) -->
+              <div id="custom-days-container" style="display: none; margin-top: 0.6rem;">
+                <input type="number" 
+                       id="custom-days-input" 
+                       class="form-control" 
+                       placeholder="Enter number of days (e.g. 15)" 
+                       min="1" 
+                       value="15">
+              </div>
+            </div>
+          </div>
+
+          <!-- Due Date Picker -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="tx-due-date" class="form-label">Calculated Due Date</label>
+            <input type="date" id="tx-due-date" class="form-control">
+          </div>
+        </div>
+
+        <!-- Date & Description Row -->
+        <div class="form-row">
+          <!-- Date Input -->
+          <div class="form-group">
+            <label for="tx-date" class="form-label">Transaction Date <span class="required">*</span></label>
+            <input type="date" id="tx-date" class="form-control" required>
+            <div class="form-feedback" id="date-feedback">Please select a valid date.</div>
+          </div>
+
+          <!-- Description Input -->
+          <div class="form-group">
+            <label for="tx-description" class="form-label">Description / Title <span class="required">*</span></label>
+            <input type="text" 
+                   id="tx-description" 
+                   class="form-control" 
+                   placeholder="e.g. Monthly Grocery, Client payment..." 
+                   required>
+            <div class="form-feedback" id="desc-feedback">Please enter a description.</div>
+          </div>
+        </div>
+
+        <!-- Optional Notes -->
+        <div class="form-group">
+          <label for="tx-notes" class="form-label">Additional Notes (Optional)</label>
+          <textarea id="tx-notes" 
+                    class="form-control" 
+                    rows="2" 
+                    placeholder="Reference numbers, mode of payment (GPay, cash, net banking)..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+          <button type="submit" class="btn btn-primary" style="flex: 1; padding: 0.85rem;">
+            <i class="ph ph-check-circle"></i> Save Transaction
+          </button>
+          <a href="index.html" class="btn btn-secondary" style="padding: 0.85rem 1.25rem;">
+            Cancel
+          </a>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="footer-container">
+      <p>&copy; 2026 RupeeTrack Expense Tracker &bull; Built with HTML5, CSS3 &amp; JavaScript</p>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/add-transaction.js"></script>
+</body>
+</html>
+
+

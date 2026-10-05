@@ -1,49 +1,146 @@
-a/* Local Storage helpers */
-const Storage = (() => {
-  'use strict';
-  const KEY = 'expenseTracker.transactions';
-  const THEME_KEY = 'expenseTracker.theme';
+/**
+ * Storage Manager for Expense Tracker
+ * Handles local storage persistence, transactions CRUD, and initial seed data.
+ */
 
-  function isValidRecord(t) {
-    return (
-      t && typeof t === 'object' &&
-      typeof t.id === 'string' &&
-      (t.type === 'income' || t.type === 'expense') &&
-      typeof t.amount === 'number' && Number.isFinite(t.amount) &&
-      typeof t.category === 'string' &&
-      typeof t.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t.date)
-    );
-  }
+// Version 2 ensures any previous seed cached in browser is cleared out cleanly to 0
+const STORAGE_KEY = 'expense_tracker_inr_v2';
 
-  function loadTransactions() {
+// Available categories defined per specification
+const CATEGORIES = {
+  income: [
+    'Salary',
+    'Freelance',
+    'Investments',
+    'Gifts',
+    'Borrowed Money',
+    'Received Money',
+    'Other'
+  ],
+  expense: [
+    'Food & Dining',
+    'Shopping',
+    'Housing/Rent',
+    'Transportation',
+    'Entertainment',
+    'Healthcare',
+    'Education',
+    'Money Given to Others',
+    'EMI',
+    'Loan Payment',
+    'Other'
+  ]
+};
+
+// Initial transactions start completely empty as requested
+const INITIAL_TRANSACTIONS = [];
+
+const Storage = {
+  /**
+   * Fetch all transactions from localStorage
+   */
+  getTransactions() {
     try {
-      const raw = localStorage.getItem(KEY);
-      if (!raw) return [];
-      const data = JSON.parse(raw);
-      return Array.isArray(data) ? data.filter(isValidRecord) : [];
-    } catch (err) {
-      console.warn('Could not read saved transactions, starting fresh.', err);
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (data === null) {
+        // Initialize as completely empty
+        this.saveTransactions([]);
+        return [];
+      }
+      return JSON.parse(data);
+    } catch (e) {
+      console.error('Failed to read from localStorage:', e);
       return [];
     }
-  }
+  },
 
-  function saveTransactions(list) {
+  /**
+   * Save full transactions array to localStorage
+   */
+  saveTransactions(transactions) {
     try {
-      localStorage.setItem(KEY, JSON.stringify(list));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+      window.dispatchEvent(new CustomEvent('transactionsUpdated', { detail: transactions }));
       return true;
-    } catch (err) {
-      console.error('Could not save transactions.', err);
+    } catch (e) {
+      console.error('Failed to save to localStorage:', e);
       return false;
     }
-  }
+  },
 
-  function loadTheme() {
-    try { return localStorage.getItem(THEME_KEY); } catch { return null; }
-  }
+  /**
+   * Add a new transaction
+   */
+  addTransaction(tx) {
+    const transactions = this.getTransactions();
+    const newTx = {
+      id: 'tx_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      createdAt: new Date().toISOString(),
+      ...tx
+    };
+    transactions.unshift(newTx);
+    this.saveTransactions(transactions);
+    return newTx;
+  },
 
-  function saveTheme(theme) {
-    try { localStorage.setItem(THEME_KEY, theme); } catch { /* ignore */ }
-  }
+  /**
+   * Update an existing transaction
+   */
+  updateTransaction(id, updatedFields) {
+    const transactions = this.getTransactions();
+    const index = transactions.findIndex(t => t.id === id);
+    if (index !== -1) {
+      transactions[index] = {
+        ...transactions[index],
+        ...updatedFields,
+        updatedAt: new Date().toISOString()
+      };
+      this.saveTransactions(transactions);
+      return transactions[index];
+    }
+    return null;
+  },
 
-  return { loadTransactions, saveTransactions, loadTheme, saveTheme };
-})();
+  /**
+   * Delete transaction by ID
+   */
+  deleteTransaction(id) {
+    const transactions = this.getTransactions();
+    const filtered = transactions.filter(t => t.id !== id);
+    this.saveTransactions(filtered);
+    return filtered.length !== transactions.length;
+  },
+
+  /**
+   * Mark a borrowed or lent transaction as settled/closed
+   */
+  toggleSettled(id) {
+    const transactions = this.getTransactions();
+    const target = transactions.find(t => t.id === id);
+    if (target) {
+      target.isSettled = !target.isSettled;
+      this.saveTransactions(transactions);
+      return target;
+    }
+    return null;
+  },
+
+  /**
+   * Reset data to completely empty (0)
+   */
+  resetData() {
+    this.saveTransactions([]);
+    return [];
+  },
+
+  /**
+   * Clear all transactions
+   */
+  clearAll() {
+    this.saveTransactions([]);
+    return [];
+  }
+};
+
+window.Storage = Storage;
+window.CATEGORIES = CATEGORIES;
