@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Expense Tracker</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('expenseTracker.theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/charts.js"></script>
+  <script defer src="js/core.js"></script>
+  <script defer src="js/dashboard.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div id="debtBanner" hidden></div>
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content">
+        <!-- Balance hero -->
+        <section class="hero">
+          <div>
+            <p class="hero-label">Your Balance</p>
+            <p class="hero-value" id="balance">₹0.00</p>
+            <p class="hero-sub" id="heroSub"></p>
+          </div>
+          <div class="hero-actions">
+            <a class="btn btn-hero" href="add.html?type=income">Add Income</a>
+            <a class="btn btn-hero-solid" href="add.html?type=expense">Add Expense</a>
+          </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="stats">
+          <article class="stat">
+            <div><p class="stat-value" id="totalIncome">₹0.00</p><p class="stat-label">Total Income</p></div>
+            <span class="stat-tag tag-income">IN</span>
+          </article>
+          <article class="stat">
+            <div><p class="stat-value" id="totalExpense">₹0.00</p><p class="stat-label">Total Expenses</p></div>
+            <span class="stat-tag tag-expense">EX</span>
+          </article>
+          <article class="stat">
+            <div><p class="stat-value" id="toPay">₹0.00</p><p class="stat-label" id="toPayLabel">To Pay</p></div>
+            <span class="stat-tag tag-pay">PAY</span>
+          </article>
+          <article class="stat">
+            <div><p class="stat-value" id="toReceive">₹0.00</p><p class="stat-label" id="toReceiveLabel">To Receive</p></div>
+            <span class="stat-tag tag-receive">GET</span>
+          </article>
+        </section>
+
+        <div class="grid-2">
+          <!-- Loans -->
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Pending Loans</h2>
+                <p class="panel-sub" id="loanSub">Money to pay and receive</p>
+              </div>
+            </div>
+            <ul class="loan-list" id="loanList"></ul>
+            <p class="empty" id="loanEmpty">No pending loans.</p>
+          </section>
+
+          <!-- Recent -->
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Recent Transactions</h2>
+                <p class="panel-sub">Your last 5 transactions</p>
+              </div>
+              <a class="btn btn-ghost btn-sm" href="transactions.html">View all</a>
+            </div>
+            <table class="tx-table">
+              <thead><tr><th>Transaction</th><th>Date</th><th>Status</th><th class="num">Amount</th></tr></thead>
+              <tbody id="recentBody"></tbody>
+            </table>
+            <p class="empty" id="recentEmpty">No transactions yet. <a href="add.html">Add your first one</a>.</p>
+          </section>
+        </div>
+
+        <div class="grid-2">
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Monthly Summary</h2>
+                <p class="panel-sub">Income and expenses for the selected month</p>
+              </div>
+              <input type="month" id="summaryMonth" class="input-sm" aria-label="Summary month" />
+            </div>
+            <div class="month-stats">
+              <div><p class="stat-label">Income</p><p class="mini income" id="sumIncome">₹0.00</p></div>
+              <div><p class="stat-label">Expenses</p><p class="mini expense" id="sumExpense">₹0.00</p></div>
+              <div><p class="stat-label">Net</p><p class="mini" id="sumNet">₹0.00</p></div>
+              <div><p class="stat-label">Top Spending</p><p class="mini" id="sumTop">-</p></div>
+            </div>
+            <h3 class="sub-title">Last 6 months</h3>
+            <div class="chart-wrap chart-bar"><canvas id="monthlyChart" role="img" aria-label="Income vs expenses, last 6 months"></canvas></div>
+            <p class="empty" id="monthlyEmpty" hidden></p>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 class="panel-title">Expenses by Category</h2>
+                <p class="panel-sub" id="categoryMonthLabel"></p>
+              </div>
+            </div>
+            <div class="chart-wrap chart-donut"><canvas id="categoryChart" role="img" aria-label="Expenses by category"></canvas></div>
+            <p class="empty" id="categoryEmpty" hidden></p>
+            <ul class="breakdown" id="categoryBreakdown"></ul>
+          </section>
+        </div>
+      </main>
+    </div>
+  </div>
+  <nav class="bottom-nav" id="bottomNav" aria-label="Main"></nav>
+</body>
+</html>

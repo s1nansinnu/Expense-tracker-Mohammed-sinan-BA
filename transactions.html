@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions - Expense Tracker</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('expenseTracker.theme');
+        if (!t) t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/styles.css" />
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/core.js"></script>
+  <script defer src="js/transactions.js"></script>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div id="debtBanner" hidden></div>
+      <header class="topbar" id="topbar"></header>
+
+      <main class="content">
+        <section class="stats stats-3">
+          <article class="stat"><div><p class="stat-value" id="fIncome">₹0.00</p><p class="stat-label">Income (filtered)</p></div><span class="stat-tag tag-income">IN</span></article>
+          <article class="stat"><div><p class="stat-value" id="fExpense">₹0.00</p><p class="stat-label">Expenses (filtered)</p></div><span class="stat-tag tag-expense">EX</span></article>
+          <article class="stat"><div><p class="stat-value" id="fNet">₹0.00</p><p class="stat-label">Net (filtered)</p></div><span class="stat-tag tag-pay">NET</span></article>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <h2 class="panel-title">Transaction History</h2>
+              <p class="panel-sub" id="listCount"></p>
+            </div>
+            <a class="btn btn-primary btn-sm" href="add.html">Add Transaction</a>
+          </div>
+
+          <div class="filters">
+            <div class="field">
+              <label for="filterType">Type</label>
+              <select id="filterType">
+                <option value="all">All</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filterCategory">Category</label>
+              <select id="filterCategory"></select>
+            </div>
+            <div class="field">
+              <label for="filterMonth">Month</label>
+              <input type="month" id="filterMonth" />
+            </div>
+            <div class="field">
+              <label for="filterSearch">Search</label>
+              <input type="search" id="filterSearch" placeholder="Description, category or name" />
+            </div>
+            <button type="button" id="clearFilters" class="btn btn-ghost">Clear</button>
+          </div>
+
+          <table class="tx-table tx-table-full">
+            <thead>
+              <tr><th>Transaction</th><th>Date</th><th>Status</th><th class="num">Amount</th><th class="num">Actions</th></tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+          <p class="empty" id="emptyState"></p>
+        </section>
+      </main>
+    </div>
+  </div>
+  <nav class="bottom-nav" id="bottomNav" aria-label="Main"></nav>
+</body>
+</html>
