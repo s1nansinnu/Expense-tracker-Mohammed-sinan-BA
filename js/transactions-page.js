@@ -263,6 +263,14 @@ function renderTransactionsList(list) {
         </div>
 
         <div class="tx-actions-col">
+          ${isDebt ? `
+            <button class="tx-action-btn toggle-settle-btn" 
+                    data-id="${tx.id}" 
+                    title="${tx.isSettled ? 'Reopen as pending' : 'Mark as paid/settled'}" 
+                    aria-label="Toggle settled">
+              <i class="ph ${tx.isSettled ? 'ph-arrow-counter-clockwise' : 'ph-check-circle'}"></i>
+            </button>
+          ` : ''}
           <button class="tx-action-btn edit-btn" data-id="${tx.id}" title="Edit transaction" aria-label="Edit">
             <i class="ph ph-pencil-simple"></i>
           </button>
@@ -275,6 +283,22 @@ function renderTransactionsList(list) {
   }).join('');
 
   // Attach action listeners
+  container.querySelectorAll('.toggle-settle-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.getAttribute('data-id');
+      const updated = Storage.toggleSettled(id);
+      if (updated) {
+        const isSettled = updated.isSettled;
+        const isBorrowed = updated.category === 'Borrowed Money';
+        const msg = isSettled 
+          ? (isBorrowed ? `Repayment of ${UI.formatINR(updated.amount)} deducted from balance.` : `Received ${UI.formatINR(updated.amount)} added to balance.`)
+          : 'Reopened as pending. Balance restored.';
+        UI.showToast(msg, isSettled ? 'success' : 'info');
+        applyFiltersAndRender();
+      }
+    });
+  });
+
   container.querySelectorAll('.edit-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       const id = e.currentTarget.getAttribute('data-id');

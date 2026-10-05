@@ -126,10 +126,18 @@ function renderDebtContainers(transactions) {
       const id = e.currentTarget.getAttribute('data-id');
       const updated = Storage.toggleSettled(id);
       if (updated) {
-        UI.showToast(
-          updated.isSettled ? 'Marked as settled!' : 'Marked as pending!',
-          updated.isSettled ? 'success' : 'info'
-        );
+        const isSettled = updated.isSettled;
+        const isBorrowed = updated.category === 'Borrowed Money';
+        
+        let msg = '';
+        if (isSettled) {
+          msg = isBorrowed 
+            ? `Marked as repaid! Repayment of ${UI.formatINR(updated.amount)} deducted from balance.` 
+            : `Marked as received! Received ${UI.formatINR(updated.amount)} added to balance.`;
+        } else {
+          msg = `Reopened as pending. Balance restored.`;
+        }
+        UI.showToast(msg, isSettled ? 'success' : 'info', 4500);
         initDashboard();
       }
     });
